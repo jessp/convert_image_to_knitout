@@ -17,114 +17,111 @@ function doKnit(){
 	let carrierIndices = getFirstAndLastInstances(data);
 
 	let isReversed = false;
+
+	let lastCarrier = data[data.length-1][data[data.length-1].length-1];
+	
 	for (var r = 0; r < data.length; r++){
-
-		if (i % Object.keys(carrierIndices).length === 0 && i > 0){
-			isReversed = !isReversed;
-		}
-
 
 		for (var i = 0; i < Object.keys(carrierIndices).length; i++){	
 
-			let carIndex = isReversed ? (Object.keys(carrierIndices).length - i - 1) : i;
-			let theCarrier = Object.keys(carrierIndices)[carIndex];	
+			let theCarrier = Object.keys(carrierIndices)[i];	
+			let inThisRow = false;
+			if (data[r].indexOf(parseInt(theCarrier)) !== -1){
+				inThisRow = true;
+			}
+			if (inThisRow){
 
-			if (Object.values(carrierIndices)[carIndex][0] == r && theCarrier !== "1"){
-				let theCarrier = Object.keys(carrierIndices)[carIndex];
-				kCode += ("inhook " + theCarrier + "\n");
-				if (r % 2 === 0){
-					kCode += ("miss - f" + (maxWidth + 1) + " " + theCarrier + "\n");
+				let lastCarrierUse = findPrevUseOfThisCarrier(theCarrier, r, data);
+				let isContinuation = false;
+				if (lastCarrierUse && lastCarrierUse[1] === (r-1)){
+					if (r % 2 === 0){
+						if (data[r][0] == theCarrier && data[r-1].indexOf(parseInt(theCarrier)) === 0){
+							isContinuation = true;
+						}
+					} else {
+						if (data[r][(maxWidth-1)] == theCarrier && data[r-1].lastIndexOf(parseInt(theCarrier)) === (maxWidth-1)){
+							isContinuation = true;
+						}
+					}
+				}
+
+				if (!isContinuation && theCarrier !== "1"){
+					kCode += ("inhook " + theCarrier + "\n");
+					if (r % 2 === 0){
+						kCode += ("miss - f" + (maxWidth + 1) + " " + theCarrier + "\n");
+					} else {
+						kCode += ("miss + f" + (-1) + " " + theCarrier + "\n");
+					}
+				}
+
+				//every other row, change direction so we knit back and forth
+				if (r % 2 == 0) {
+					//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
+					for (let n = maxWidth; n >= 0; --n) {
+						if (data[r][n] == theCarrier){
+							kCode += ("knit - f" + n + " " + data[r][n] + "\n");
+						}
+					}
 				} else {
-					kCode += ("miss + f" + (-1) + " " + theCarrier + "\n");
-				}
-			}
-
-			//every other row, change direction so we knit back and forth
-			if (r % 2 == 0) {
-				//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
-				for (let n = maxWidth; n >= 0; --n) {
-					if (data[r][n] == theCarrier){
-						kCode += ("knit - f" + n + " " + data[r][n] + "\n");
+					for (let n = 0; n <= maxWidth; ++n) {
+						if (data[r][n] == theCarrier){
+							kCode += ("knit + f" + n + " " + data[r][n] + "\n");
+						}
 					}
 				}
-			} else {
-				for (let n = 0; n <= maxWidth; ++n) {
-					if (data[r][n] == theCarrier){
-						kCode += ("knit + f" + n + " " + data[r][n] + "\n");
+
+				if (!isContinuation && (theCarrier !== "1" && r !== 0)){
+					kCode += ("releasehook " + theCarrier + "\n");
+					if (r % 2 == 1){
+						kCode += ("miss + f" + (maxWidth + 1) + " " + theCarrier + "\n");
+					} else {
+						kCode += ("miss - f" + (-1) + " " + theCarrier + "\n");
+					}
+
+				}
+
+
+
+				let willContinue = false;
+				let nextCarrierUse = findNextUseOfThisCarrier(theCarrier, r, data);
+				if (nextCarrierUse && nextCarrierUse[1] === (r + 1)){
+					if (r % 2 === 0){
+						if (data[r][(maxWidth-1)] == theCarrier && data[r+1].lastIndexOf(parseInt(theCarrier)) === (maxWidth-1)){
+							willContinue = true;
+						}
+					} else {
+						if (data[r][0] == theCarrier && data[r+1].indexOf(parseInt(theCarrier)) === 0){
+							willContinue = true;
+						}
 					}
 				}
-			}
 
-			//release hook at the end of the line they're introduced on
-			if (carrierIndices[theCarrier][0] === r && theCarrier !== "1"){
-				kCode += ("releasehook " + theCarrier + "\n");
-			}
-
-			//outhook once threads are no longer used, but we treat the last colour used specially
-			if (r !== (data.length - 1)){
-				if (carrierIndices[theCarrier][1] == r){
+				if (!willContinue && (r !== (data.length - 1) && theCarrier != lastCarrier)){
 					kCode += doCastOff(theCarrier);
 				}
 			}
-
-
-
-		}
-
-
-		if (i % Object.keys(carrierIndices).length === 0 && i > 0){
-			for (var i = 0; i < Object.keys(carrierIndices).length; i++){	
-
-			let theCarrier = Object.keys(carrierIndices)[i];	
-
-			//if we're using the carrier, and there are more than one carriers used on this line
-			//and there's a next line
-			if (data[r].includes(parseInt(theCarrier)) && [...new Set(data[r])].length > 1 && 
-				data[r+1]){
-
-				//find out where the next row and index of this carrier is
-				let nextRowAndIndexOfCarr = findNextUseOfThisCarrier(theCarrier, r, data);
-				if (nextRowAndIndexOfCarr !== null){
-					let isContinuationOfThisThread = false;
-					//check to see if this row and the next row start/end on the given carrier
-					if (nextRowAndIndexOfCarr[1] === (r + 1)){
-						if (r % 2 === 0){
-							if (data[r][0] == theCarrier && nextRowAndIndexOfCarr[0] == 0){
-								isContinuationOfThisThread = true;
-							}
-						} else {
-							if (data[r][maxWidth-1] == theCarrier && nextRowAndIndexOfCarr[0] == (maxWidth-1)){
-								isContinuationOfThisThread = true;
-							}
-						}
-					}
-					//if it doesn't, move this carrier out of the way
-					if (!isContinuationOfThisThread){
-						let nextRow = nextRowAndIndexOfCarr[1];
-						if (nextRow % 2 == 0){
-							kCode += ("miss + f" + (maxWidth + 1) + " " + theCarrier + "\n");
-						} else {
-							kCode += ("miss - f" + (-1) + " " + theCarrier + "\n");
-						}
-					}
-				}
-			}
-
-
 		}
 	}
-
-	}
-	let lastUsedCarrier = data[data.length-1][data[(data.length-1)].length - 1];
-	kCode += bindOff(lastUsedCarrier, data.length % 2 === 0, 0, maxWidth);
-	kCode += knitLastTwoStitches(lastUsedCarrier, data.length % 2 === 0, 0, maxWidth);
-	kCode += doCastOff(lastUsedCarrier);
+	kCode += bindOff(lastCarrier, data.length % 2 === 0, 0, maxWidth);
+	kCode += knitLastTwoStitches(lastCarrier, data.length % 2 === 0, 0, maxWidth);
+	kCode += doCastOff(lastCarrier);
 	writeFile(kCode);
 }
 
 function findNextUseOfThisCarrier(carr, currentRow, data){
 	for (var r = currentRow + 1; r < data.length; r++){
 		let idx = data[r].findIndex((e) => e === parseInt(carr));
+		if (idx !== -1){
+			return [idx, r];
+			break;
+		}
+	}
+	return null;
+}
+
+function findPrevUseOfThisCarrier(carr, currentRow, data){
+	for (var r = currentRow - 1; r > 0; r--){
+		let idx = data[r].lastIndexOf(parseInt(carr));
 		if (idx !== -1){
 			return [idx, r];
 			break;
