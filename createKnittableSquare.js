@@ -55,6 +55,28 @@ function doKnit(){
 				}
 			}
 
+			//release hook at the end of the line they're introduced on
+			if (carrierIndices[theCarrier][0] === r && theCarrier !== "1"){
+				kCode += ("releasehook " + theCarrier + "\n");
+			}
+
+			//outhook once threads are no longer used, but we treat the last colour used specially
+			if (r !== (data.length - 1)){
+				if (carrierIndices[theCarrier][1] == r){
+					kCode += doCastOff(theCarrier);
+				}
+			}
+
+
+
+		}
+
+
+		if (i % Object.keys(carrierIndices).length === 0 && i > 0){
+			for (var i = 0; i < Object.keys(carrierIndices).length; i++){	
+
+			let theCarrier = Object.keys(carrierIndices)[i];	
+
 			//if we're using the carrier, and there are more than one carriers used on this line
 			//and there's a next line
 			if (data[r].includes(parseInt(theCarrier)) && [...new Set(data[r])].length > 1 && 
@@ -76,9 +98,10 @@ function doKnit(){
 							}
 						}
 					}
+					//if it doesn't, move this carrier out of the way
 					if (!isContinuationOfThisThread){
-						let lastIndex = data[r].lastIndexOf(parseInt(theCarrier));
-						if (lastIndex > maxWidth/2){
+						let nextRow = nextRowAndIndexOfCarr[1];
+						if (nextRow % 2 == 0){
 							kCode += ("miss + f" + (maxWidth + 1) + " " + theCarrier + "\n");
 						} else {
 							kCode += ("miss - f" + (-1) + " " + theCarrier + "\n");
@@ -87,21 +110,9 @@ function doKnit(){
 				}
 			}
 
-			//release hook at the end of the line they're introduced on
-			if (carrierIndices[theCarrier][0] === r && theCarrier !== "1"){
-				kCode += ("releasehook " + theCarrier + "\n");
-			}
-
-			//outhook once threads are no longer used, but we treat the last colour used specially
-			if (r !== (data.length - 1)){
-				if (carrierIndices[theCarrier][1] == r){
-					kCode += doCastOff(theCarrier);
-				}
-			}
-
-
 
 		}
+	}
 
 	}
 	let lastUsedCarrier = data[data.length-1][data[(data.length-1)].length - 1];
