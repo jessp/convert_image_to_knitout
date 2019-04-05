@@ -5,6 +5,7 @@ let nylonYarn = "6";
 
 doKnit();
 
+
 function doKnit(){
 	let kCode = "";
 	let maxWidth = data[0].length - 1;
@@ -18,60 +19,55 @@ function doKnit(){
 	let activeHook = "";
 
 	for (var r = 0; r < data.length; r++){
-		let approach = 1;
 
-		let numIntrosAtThisRow = Object.values(carrierIndices).map((e) => e[0]).filter((e) => e === r).length;
-		if (numIntrosAtThisRow > 1){
-			approach = 2;
-		}
-
-		if (approach === 1){
-			for (var i = 0; i < Object.values(carrierIndices).length; i++){
-				if (Object.values(carrierIndices)[i][0] == r && Object.keys(carrierIndices)[i] !== "1"){
-					let theCarrier = Object.keys(carrierIndices)[i];
-
-					//if more than one carrier is introduced in a line, we want to release it immediately
-					//so the gripper is free to indroduce another carrier
-					if (activeHook != ""){
-						kCode += ("releasehook " + activeHook + "\n");
-						activeHook = "";
-					}
-
-					kCode += ("inhook " + theCarrier + "\n");
-					kCode += ("miss " + (r === 0 ? "-" : "+") + " f" + (maxWidth + 1) + " " + theCarrier + "\n");
-					activeHook = theCarrier;
-				}
-			}
-
-			//every other row, change direction so we knit back and forth
-			if (r % 2 == 0) {
-				//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
-				for (let n = maxWidth; n >= 0; --n) {
+		//every other row, change direction so we knit back and forth
+		if (r % 2 == 0) {
+			//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
+			for (let n = maxWidth; n >= 0; --n) {
+				if (!introducedInThisRow(r, data[r][n], carrierIndices) || data[r][n] == "1") {
 					kCode += ("knit - f" + n + " " + data[r][n] + "\n");
-				}
-			} else {
-				for (let n = 0; n <= maxWidth; ++n) {
-					kCode += ("knit + f" + n + " " + data[r][n] + "\n");
-				}
-			}
-
-			//usually, we want to release the intro hook after a row of knitting
-			if (activeHook != ""){
-				kCode += ("releasehook " + activeHook + "\n");
-				activeHook = "";
-			}
-
-
-			//outhook once threads are no longer used, but we treat the last colour used specially
-			if (r !== (data.length - 1)){
-				for (var i = 0; i < Object.values(carrierIndices).length; i++){
-					if (Object.values(carrierIndices)[i][1] == r){
-						kCode += doCastOff(Object.keys(carrierIndices)[i]);
-					}
 				}
 			}
 		} else {
-			
+			for (let n = 0; n <= maxWidth; ++n) {
+				if (!introducedInThisRow(r, data[r][n], carrierIndices) || data[r][n] == "1") {
+					kCode += ("knit + f" + n + " " + data[r][n] + "\n");
+				}
+			}
+		}
+
+		let theIntroduced = getIntroducedInThisRow(r, carrierIndices);
+
+		for (var i = 0; i < theIntroduced.length; i++){
+			if (theIntroduced[i] != "1"){
+				kCode += ("inhook " + theIntroduced[i] + "\n");
+				if (r % 2 == 0) {
+					kCode += ("miss - f" + maxWidth + " " + theIntroduced[i] + "\n");
+					//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
+					for (let n = maxWidth; n >= 0; --n) {
+						if (data[r][n] == theIntroduced[i]) {
+							kCode += ("knit - f" + n + " " + data[r][n] + "\n");
+						}
+					}
+				} else {
+					kCode += ("miss + f" + 0 + " " + theIntroduced[i] + "\n");
+					for (let n = 0; n <= maxWidth; ++n) {
+						if (data[r][n] == theIntroduced[i]) {
+							kCode += ("knit + f" + n + " " + data[r][n] + "\n");
+						}
+					}
+				}
+				kCode += ("releasehook " + theIntroduced[i] + "\n");
+			}
+		}
+
+		//outhook once threads are no longer used, but we treat the last colour used specially
+		if (r !== (data.length - 1)){
+			for (var i = 0; i < Object.values(carrierIndices).length; i++){
+				if (Object.values(carrierIndices)[i][1] == r){
+					kCode += doCastOff(Object.keys(carrierIndices)[i]);
+				}
+			}
 		}
 	}
 	let lastUsedCarrier = data[data.length-1][data[(data.length-1)].length - 1];
@@ -79,6 +75,20 @@ function doKnit(){
 	kCode += knitLastTwoStitches(lastUsedCarrier, data.length % 2 === 0, 0, maxWidth);
 
 	writeFile(kCode);
+}
+
+function introducedInThisRow(row, carrier, carrierIndices){
+	return carrierIndices[carrier][0] === row;
+}
+
+function getIntroducedInThisRow(row, carrierIndices){
+	let arr = [];
+	for (var i = 0; i < Object.values(carrierIndices).length; i++){
+		if (Object.values(carrierIndices)[i][0] === row){
+			arr.push(Object.keys(carrierIndices)[i])
+		}
+	}
+	return arr;
 }
 
 //knit the last two stitches a bunch so we can unravel and knot them
