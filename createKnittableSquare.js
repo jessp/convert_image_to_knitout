@@ -18,6 +18,7 @@ function doKnit(){
 
 	let isReversed = false;
 	for (var r = 0; r < data.length; r++){
+		kCode += (";;row" + "\n");
 
 		if (i % Object.keys(carrierIndices).length === 0 && i > 0){
 			isReversed = !isReversed;
@@ -29,77 +30,97 @@ function doKnit(){
 			let carIndex = isReversed ? (Object.keys(carrierIndices).length - i - 1) : i;
 			let theCarrier = Object.keys(carrierIndices)[carIndex];	
 
-			if (Object.values(carrierIndices)[carIndex][0] == r && theCarrier !== "1"){
-				let theCarrier = Object.keys(carrierIndices)[carIndex];
-				kCode += ("inhook " + theCarrier + "\n");
-				if (r % 2 === 0){
-					kCode += ("miss - f" + (maxWidth + 1) + " " + theCarrier + "\n");
+			//is this carrier even used in this row?
+			let inThisRow = data[r].indexOf(parseInt(theCarrier)) !== -1;
+
+			if (inThisRow){
+				if (Object.values(carrierIndices)[carIndex][0] == r && theCarrier !== "1"){
+					kCode += ("inhook " + theCarrier + "\n");
+					if (r % 2 === 0){
+						kCode += ("miss - f" + (maxWidth + 1) + " " + theCarrier + "\n");
+					} else {
+						kCode += ("miss + f" + (-1) + " " + theCarrier + "\n");
+					}
+				}
+
+				//every other row, change direction so we knit back and forth
+				if (r % 2 == 0) {
+					//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
+					for (let n = maxWidth; n >= 0; --n) {
+						if (data[r][n] == theCarrier){
+							kCode += ("knit - f" + n + " " + data[r][n] + "\n");
+						}
+					}
 				} else {
-					kCode += ("miss + f" + (-1) + " " + theCarrier + "\n");
-				}
-			}
-
-			//every other row, change direction so we knit back and forth
-			if (r % 2 == 0) {
-				//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
-				for (let n = maxWidth; n >= 0; --n) {
-					if (data[r][n] == theCarrier){
-						kCode += ("knit - f" + n + " " + data[r][n] + "\n");
-					}
-				}
-			} else {
-				for (let n = 0; n <= maxWidth; ++n) {
-					if (data[r][n] == theCarrier){
-						kCode += ("knit + f" + n + " " + data[r][n] + "\n");
-					}
-				}
-			}
-
-			//if we're using the carrier, and there are more than one carriers used on this line
-			//and there's a next line
-			if (data[r].includes(parseInt(theCarrier)) && [...new Set(data[r])].length > 1 && 
-				data[r+1]){
-
-				//find out where the next row and index of this carrier is
-				let nextRowAndIndexOfCarr = findNextUseOfThisCarrier(theCarrier, r, data);
-				if (nextRowAndIndexOfCarr !== null){
-					let isContinuationOfThisThread = false;
-					//check to see if this row and the next row start/end on the given carrier
-					if (nextRowAndIndexOfCarr[1] === (r + 1)){
-						if (r % 2 === 0){
-							if (data[r][0] == theCarrier && nextRowAndIndexOfCarr[0] == 0){
-								isContinuationOfThisThread = true;
-							}
-						} else {
-							if (data[r][maxWidth-1] == theCarrier && nextRowAndIndexOfCarr[0] == (maxWidth-1)){
-								isContinuationOfThisThread = true;
-							}
-						}
-					}
-					if (!isContinuationOfThisThread){
-						let lastIndex = data[r].lastIndexOf(parseInt(theCarrier));
-						if (lastIndex > maxWidth/2){
-							kCode += ("miss + f" + (maxWidth + 1) + " " + theCarrier + "\n");
-						} else {
-							kCode += ("miss - f" + (-1) + " " + theCarrier + "\n");
+					for (let n = 0; n <= maxWidth; ++n) {
+						if (data[r][n] == theCarrier){
+							kCode += ("knit + f" + n + " " + data[r][n] + "\n");
 						}
 					}
 				}
-			}
 
-			//release hook at the end of the line they're introduced on
-			if (carrierIndices[theCarrier][0] === r && theCarrier !== "1"){
-				kCode += ("releasehook " + theCarrier + "\n");
-			}
+				//if we're using the carrier, and there are more than one carriers used on this line
+				//and there's a next line
+				if (data[r].includes(parseInt(theCarrier)) && [...new Set(data[r])].length > 1 && 
+					data[r+1]){
 
-			//outhook once threads are no longer used, but we treat the last colour used specially
-			if (r !== (data.length - 1)){
-				if (carrierIndices[theCarrier][1] == r){
-					kCode += doCastOff(theCarrier);
+					//find out where the next row and index of this carrier is
+					let nextRowAndIndexOfCarr = findNextUseOfThisCarrier(theCarrier, r, data);
+					if (nextRowAndIndexOfCarr !== null){
+						let isContinuationOfThisThread = false;
+						//check to see if this row and the next row start/end on the given carrier
+						if (nextRowAndIndexOfCarr[1] === (r + 1)){
+							if (r % 2 === 0){
+								if (data[r][0] == theCarrier && data[r+1][0] == theCarrier){
+									isContinuationOfThisThread = true;
+								}
+							} else {
+								if (data[r][maxWidth-1] == theCarrier && data[r+1][maxWidth-1] == theCarrier){
+									isContinuationOfThisThread = true;
+								}
+							}
+						}
+						if (!isContinuationOfThisThread){
+							let lastIndex = data[r].lastIndexOf(parseInt(theCarrier));
+							if (nextRowAndIndexOfCarr[1] !== (r + 1)){
+								if (nextRowAndIndexOfCarr[1] % 2 === 0){
+									kCode += ("miss - f" + (-1) + " " + theCarrier + "\n");
+								} else {
+									kCode += ("miss + f" + (maxWidth + 1) + " " + theCarrier + "\n");
+								}
+							} else {
+								if (nextRowAndIndexOfCarr[1] % 2 === 0){
+									let nextIdx = data[r+1].lastIndexOf(parseInt(theCarrier));
+									if (nextIdx !== data[r].lastIndexOf(parseInt(theCarrier))){
+										kCode += ("miss - f" + (nextIdx) + " " + theCarrier + "\n");
+									}
+								} else {
+									let nextIdx = data[r+1].indexOf(parseInt(theCarrier));
+									if (nextIdx !== data[r].indexOf(parseInt(theCarrier))){
+										kCode += ("miss + f" + (nextIdx) + " " + theCarrier + "\n");
+									}
+
+								}
+							}
+						}
+					}
 				}
+
+
+
+				//release hook at the end of the line they're introduced on
+				if (carrierIndices[theCarrier][0] === r && theCarrier !== "1"){
+					kCode += ("releasehook " + theCarrier + "\n");
+				}
+
+				//outhook once threads are no longer used, but we treat the last colour used specially
+				if (r !== (data.length - 1)){
+					if (carrierIndices[theCarrier][1] == r){
+						kCode += doCastOff(theCarrier);
+					}
+				}
+
 			}
-
-
 
 		}
 
