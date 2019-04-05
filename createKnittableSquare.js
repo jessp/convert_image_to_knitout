@@ -12,63 +12,137 @@ function doKnit(){
 
 
 	kCode += setup();
-	kCode += doCastOn("1", 0, maxWidth, maxWidth + 1);//we'll do our set up with carrier one, since it's the first colour used
+	kCode += doCastOn("1", 0, maxWidth, maxWidth + 2);//we'll do our set up with carrier one, since it's the first colour used
 
 	let carrierIndices = getFirstAndLastInstances(data);
-	let activeHook = "";
 
 
 	for (var r = 0; r < data.length; r++){
 
-		for (var i = 0; i < Object.values(carrierIndices).length; i++){
-			if (Object.values(carrierIndices)[i][0] == r && Object.keys(carrierIndices)[i] !== "1"){
+
+		for (var i = 0; i < Object.keys(carrierIndices).length; i++){	
+			let theCarrier = Object.keys(carrierIndices)[i];	
+
+			if (Object.values(carrierIndices)[i][0] == r && theCarrier !== "1"){
 				let theCarrier = Object.keys(carrierIndices)[i];
-
-				//if more than one carrier is introduced in a line, we want to release it immediately
-				//so the gripper is free to indroduce another carrier
-				if (activeHook != ""){
-					kCode += ("releasehook " + activeHook + "\n");
-					activeHook = "";
-				}
-
 				kCode += ("inhook " + theCarrier + "\n");
-				kCode += ("miss " + (r === 0 ? "-" : "+") + " f" + (maxWidth + 1) + " " + theCarrier + "\n");
-				activeHook = theCarrier;
+				if (r % 2 === 0){
+					kCode += ("miss - f" + (maxWidth + 1) + " " + theCarrier + "\n");
+				} else {
+					kCode += ("miss + f" + (-1) + " " + theCarrier + "\n");
+				}
 			}
+
+			//every other row, change direction so we knit back and forth
+			if (r % 2 == 0) {
+				//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
+				for (let n = maxWidth; n >= 0; --n) {
+					if (data[r][n] == theCarrier){
+						kCode += ("knit - f" + n + " " + data[r][n] + "\n");
+					}
+				}
+			} else {
+				for (let n = 0; n <= maxWidth; ++n) {
+					if (data[r][n] == theCarrier){
+						kCode += ("knit + f" + n + " " + data[r][n] + "\n");
+					}
+				}
+			}
+
+			if (data[r].includes(parseInt(theCarrier)) && [...new Set(data[r])].length > 1){
+				if (r % 2 === 0){
+					kCode += ("miss - f" + 0 + " " + theCarrier + "\n");
+				} else {
+					kCode += ("miss + f" + maxWidth + " " + theCarrier + "\n");
+				}
+			}
+
+			//release hook at the end of the line they're introduced on
+			if (carrierIndices[theCarrier][0] === r && theCarrier !== "1"){
+				kCode += ("releasehook " + theCarrier + "\n");
+			}
+
+			//outhook once threads are no longer used, but we treat the last colour used specially
+			if (r !== (data.length - 1)){
+				if (carrierIndices[theCarrier][1] == r){
+					kCode += doCastOff(theCarrier);
+				}
+			}
+
+
+
 		}
 
-		//every other row, change direction so we knit back and forth
-		if (r % 2 == 0) {
-			//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
-			for (let n = maxWidth; n >= 0; --n) {
-				kCode += ("knit - f" + n + " " + data[r][n] + "\n");
-			}
-		} else {
-			for (let n = 0; n <= maxWidth; ++n) {
-				kCode += ("knit + f" + n + " " + data[r][n] + "\n");
-			}
-		}
-
-		//usually, we want to release the intro hook after a how of knitting
-		if (activeHook != ""){
-			kCode += ("releasehook " + activeHook + "\n");
-			activeHook = "";
-		}
 
 
-		//outhook once threads are no longer used, but we treat the last colour used specially
-		if (r !== (data.length - 1)){
-			for (var i = 0; i < Object.values(carrierIndices).length; i++){
-				if (Object.values(carrierIndices)[i][1] == r){
-					kCode += doCastOff(Object.keys(carrierIndices)[i]);
+		// for (var i = 0; i < Object.values(carrierIndices).length; i++){
+		// 	if (Object.values(carrierIndices)[i][0] == r && Object.keys(carrierIndices)[i] !== "1"){
+		// 		let theCarrier = Object.keys(carrierIndices)[i];
+
+		// 		//if more than one carrier is introduced in a line, we want to release it immediately
+		// 		//so the gripper is free to indroduce another carrier
+		// 		if (activeHook != ""){
+		// 			kCode += ("releasehook " + activeHook + "\n");
+		// 			activeHook = "";
+		// 		}
+
+		// 		kCode += ("inhook " + theCarrier + "\n");
+		// 		if (r % 2 === 0){
+		// 			kCode += ("miss - f" + (maxWidth + 1) + " " + theCarrier + "\n");
+		// 		} else {
+		// 			kCode += ("miss + f" + (-1) + " " + theCarrier + "\n");
+		// 		}
+		// 		activeHook = theCarrier;
+		// 	}
+		// }
+
+		// //every other row, change direction so we knit back and forth
+		// if (r % 2 == 0) {
+		// 	//we end on the right side (i.e., going in + direction), so we start by going towards the left (-))
+		// 	for (let n = maxWidth; n >= 0; --n) {
+		// 		kCode += ("knit - f" + n + " " + data[r][n] + "\n");
+		// 	}
+		// } else {
+		// 	for (let n = 0; n <= maxWidth; ++n) {
+		// 		kCode += ("knit + f" + n + " " + data[r][n] + "\n");
+		// 	}
+		// }
+
+		//trouble shooting dynamic yarn carrier interference error
+		//let's see our unused yarns do a "miss" at the end of the row
+		/*
+		for (var i = 0; i < Object.keys(carrierIndices).length; i++){
+			let car = Object.keys(carrierIndices)[i];
+			if (car !== activeHook && r >= carrierIndices[car][0] && r <= carrierIndices[car][1]){
+				if (r % 2 === 0){
+					kCode += ("miss - f" + 0 + " " + car + "\n");
+				} else {
+					kCode += ("miss + f" + maxWidth + " " + car + "\n");
 				}
 			}
 		}
+		*/
+
+		// //usually, we want to release the intro hook after a how of knitting
+		// if (activeHook != ""){
+		// 	kCode += ("releasehook " + activeHook + "\n");
+		// 	activeHook = "";
+		// }
+
+
+		// //outhook once threads are no longer used, but we treat the last colour used specially
+		// if (r !== (data.length - 1)){
+		// 	for (var i = 0; i < Object.values(carrierIndices).length; i++){
+		// 		if (Object.values(carrierIndices)[i][1] == r){
+		// 			kCode += doCastOff(Object.keys(carrierIndices)[i]);
+		// 		}
+		// 	}
+		// }
 	}
 	let lastUsedCarrier = data[data.length-1][data[(data.length-1)].length - 1];
 	kCode += bindOff(lastUsedCarrier, data.length % 2 === 0, 0, maxWidth);
 	kCode += knitLastTwoStitches(lastUsedCarrier, data.length % 2 === 0, 0, maxWidth);
-
+	kCode += doCastOff(lastUsedCarrier);
 	writeFile(kCode);
 }
 
@@ -94,21 +168,25 @@ function knitLastTwoStitches(carrier, direction, min, max){
 function bindOff(carrier, direction, min, max){
 	let code = "";
 	if (direction){
-		for (let n = max; n >= (min + 1); --n) {
+		for (let n = max; n >= (min + 2); --n) {
 			code += ("knit - f" + n + " " + carrier + "\n");
 			code += ("xfer f" + n + " b" + n + "\n");
 			code += ("rack -1" + "\n");
 			code += ("xfer b" + n + " f" + (n - 1) + "\n");
 			code += ("rack 0" + "\n");
 		}
+		code += ("knit - f" + (min + 1) + " " + carrier + "\n");
+		code += ("knit - f" + min + " " + carrier + "\n");
 	} else {
-		for (let n = min; n <= (max - 1); ++n) {
+		for (let n = min; n <= (max - 2); ++n) {
 			code += ("knit + f" + n + " " + carrier + "\n");
 			code += ("xfer f" + n + " b" + n + "\n");
 			code += ("rack 1" + "\n");
 			code += ("xfer b" + n + " f" + (n + 1) + "\n");
 			code += ("rack 0" + "\n");
 		}
+		code += ("knit + f" + (max - 1) + " " + carrier + "\n");
+		code += ("knit + f" + max + " " + carrier + "\n");
 	}
 
 	return code;

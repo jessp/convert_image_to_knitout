@@ -45,7 +45,6 @@ loadImage('./images/in/' + filename + '.' +  extension).then((image) => {
         }
         index++; //go to next pixel in the array
     }
-    console.log(Object.keys(uniqueColours));
 
     writeDataFile(JSON.stringify(pixArray));
     writeImgFile(newCanvas.toDataURL());
