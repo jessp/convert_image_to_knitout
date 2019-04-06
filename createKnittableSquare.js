@@ -131,21 +131,25 @@ function getIntroducedInThisRow(row, carrierIndices){
 function bindOff(carrier, direction, min, max){
 	let code = "";
 	if (direction){
-		for (let n = max; n >= (min + 1); --n) {
+		for (let n = max; n >= (min + 2); --n) {
 			code += ("knit - f" + n + " " + carrier + "\n");
 			code += ("xfer f" + n + " b" + n + "\n");
 			code += ("rack -1" + "\n");
 			code += ("xfer b" + n + " f" + (n - 1) + "\n");
 			code += ("rack 0" + "\n");
 		}
+		code += ("knit - f" + (min + 1) + " " + carrier + "\n");
+		code += ("knit - f" + min + " " + carrier + "\n");
 	} else {
-		for (let n = min; n <= (max - 1); ++n) {
+		for (let n = min; n <= (max - 2); ++n) {
 			code += ("knit + f" + n + " " + carrier + "\n");
 			code += ("xfer f" + n + " b" + n + "\n");
 			code += ("rack 1" + "\n");
 			code += ("xfer b" + n + " f" + (n + 1) + "\n");
 			code += ("rack 0" + "\n");
 		}
+		code += ("knit + f" + (max - 1) + " " + carrier + "\n");
+		code += ("knit + f" + max + " " + carrier + "\n");
 	}
 
 	return code;
