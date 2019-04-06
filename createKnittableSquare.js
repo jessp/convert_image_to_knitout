@@ -84,26 +84,14 @@ function doKnit(){
 			}
 		}
 	}
+
 	let lastUsedCarrier = data[data.length-1][data[(data.length-1)].length - 1];
 	kCode += bindOff(lastUsedCarrier, data.length % 2 === 0, 0, maxWidth);
 	kCode += knitLastTwoStitches(lastUsedCarrier, data.length % 2 === 0, 0, maxWidth);
-
+	kCode += doCastOff(lastUsedCarrier);
 	writeFile(kCode);
 }
 
-function introducedInThisRow(row, carrier, carrierIndices){
-	return carrierIndices[carrier][0] === row;
-}
-
-function getIntroducedInThisRow(row, carrierIndices){
-	let arr = [];
-	for (var i = 0; i < Object.values(carrierIndices).length; i++){
-		if (Object.values(carrierIndices)[i][0] === row){
-			arr.push(Object.keys(carrierIndices)[i])
-		}
-	}
-	return arr;
-}
 
 //knit the last two stitches a bunch so we can unravel and knot them
 function knitLastTwoStitches(carrier, direction, min, max){
@@ -122,6 +110,22 @@ function knitLastTwoStitches(carrier, direction, min, max){
 		}
 	}
 	return code;
+}
+
+
+
+function introducedInThisRow(row, carrier, carrierIndices){
+	return carrierIndices[carrier][0] === row;
+}
+
+function getIntroducedInThisRow(row, carrierIndices){
+	let arr = [];
+	for (var i = 0; i < Object.values(carrierIndices).length; i++){
+		if (Object.values(carrierIndices)[i][0] === row){
+			arr.push(Object.keys(carrierIndices)[i])
+		}
+	}
+	return arr;
 }
 
 function bindOff(carrier, direction, min, max){
