@@ -69,6 +69,20 @@ function doKnit(){
 				}
 			}
 		}
+
+		
+		let carrsInThisRow = [...new Set(data[r])];
+		if (carrsInThisRow.length > 1){
+			for (var c = 0; c < carrsInThisRow.length; c++){
+				if (carrierIndices[carrsInThisRow[c]][1] !== r){
+					if (r % 2 === 0){
+						kCode += ("miss + f" + (maxWidth) + " " + carrsInThisRow[c] + "\n");
+					} else {
+						kCode += ("miss - f0 " + carrsInThisRow[c] + "\n");
+					}
+				}
+			}
+		}
 	}
 	let lastUsedCarrier = data[data.length-1][data[(data.length-1)].length - 1];
 	kCode += bindOff(lastUsedCarrier, data.length % 2 === 0, 0, maxWidth);
