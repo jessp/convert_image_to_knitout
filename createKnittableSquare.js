@@ -71,14 +71,27 @@ function doKnit(){
 		}
 
 		
+
+		//get carriers out of the way
 		let carrsInThisRow = [...new Set(data[r])];
-		if (carrsInThisRow.length > 1){
+		//if we're using more than one carrier and there is a next row
+		if (carrsInThisRow.length > 1 && data[r+1]){
 			for (var c = 0; c < carrsInThisRow.length; c++){
+				//if we're not outhooking
 				if (carrierIndices[carrsInThisRow[c]][1] !== r){
+					let inNextRow = data[r+1].indexOf(parseInt(carrsInThisRow[c])) !== -1;
 					if (r % 2 === 0){
-						kCode += ("miss + f" + (maxWidth) + " " + carrsInThisRow[c] + "\n");
+						if (!inNextRow){
+							kCode += ("miss + f" + (maxWidth) + " " + carrsInThisRow[c] + "\n");
+						} else{
+							kCode += ("miss + f" + data[r+1].indexOf(parseInt(carrsInThisRow[c])) + " " + carrsInThisRow[c] + "\n");
+						}
 					} else {
-						kCode += ("miss - f0 " + carrsInThisRow[c] + "\n");
+						if (!inNextRow){
+							kCode += ("miss - f0 " + carrsInThisRow[c] + "\n");
+						} else{
+							kCode += ("miss - f" + data[r+1].lastIndexOf(parseInt(carrsInThisRow[c])) + " " + carrsInThisRow[c] + "\n");
+						}
 					}
 				}
 			}
