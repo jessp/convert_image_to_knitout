@@ -13,7 +13,7 @@ function doKnit(){
 
 
 	kCode += setup();
-	kCode += doCastOn("1", 0, maxWidth, maxWidth + 2);//we'll do our set up with carrier one, since it's the first colour used
+	kCode += doCastOn("1", 0, maxWidth, maxWidth + 1);//we'll do our set up with carrier one, since it's the first colour used
 
 	let carrierIndices = getFirstAndLastInstances(data);
 
